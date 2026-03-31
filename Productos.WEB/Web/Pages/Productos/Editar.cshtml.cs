@@ -35,7 +35,7 @@ namespace Web.Pages.Productos
             if (id == null)
                 return NotFound();
             string endpoint = _configuracion.ObtenerMetodo("ApiEndPoints", "ObtenerProducto");
-            var cliente = new HttpClient();
+            using var cliente = ObtenerClienteConToken();
 
             var solicitud = new HttpRequestMessage(HttpMethod.Get, string.Format(endpoint, id));
             var respuesta = await cliente.SendAsync(solicitud);
@@ -72,7 +72,7 @@ namespace Web.Pages.Productos
                 return Page();
 
             string endpoint = _configuracion.ObtenerMetodo("ApiEndPoints", "EditarProducto");
-            var cliente = new HttpClient();
+            using var cliente = ObtenerClienteConToken();
 
             var respuesta = await cliente.PutAsJsonAsync<ProductoRequest>(string.Format(endpoint, productoResponse.Id.ToString()), new ProductoRequest {
                 IdSubCategoria = subcategoriaseleccionado,
@@ -89,7 +89,7 @@ namespace Web.Pages.Productos
         private async Task ObtenerCategoriasAsync()
         {
             string endpoint = _configuracion.ObtenerMetodo("ApiEndPoints", "ObtenerCategorias");
-            var cliente = new HttpClient();
+            using var cliente = ObtenerClienteConToken();
             var solicitud = new HttpRequestMessage(HttpMethod.Get, endpoint);
 
             var respuesta = await cliente.SendAsync(solicitud);
@@ -116,7 +116,7 @@ namespace Web.Pages.Productos
         private async Task<List<SubCategoria>> ObtenerSubCategoriasAsync(Guid categoriaId)
         {
             string endpoint = _configuracion.ObtenerMetodo("ApiEndPoints", "ObtenerSubCategorias");
-            var cliente = new HttpClient();
+            using var cliente = ObtenerClienteConToken();
             var solicitud = new HttpRequestMessage(HttpMethod.Get, string.Format(endpoint, categoriaId));
 
             var respuesta = await cliente.SendAsync(solicitud);
@@ -128,6 +128,17 @@ namespace Web.Pages.Productos
                 return JsonSerializer.Deserialize<List<SubCategoria>>(resultado, opciones);
             }
             return new List<SubCategoria>();
+        }
+        private HttpClient ObtenerClienteConToken()
+        {
+            var tokenClaim = HttpContext.User.Claims
+                .FirstOrDefault(c => c.Type == "Token");
+            var cliente = new HttpClient();
+            if (tokenClaim != null)
+                cliente.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue(
+                        "Bearer", tokenClaim.Value);
+            return cliente;
         }
 
     }
